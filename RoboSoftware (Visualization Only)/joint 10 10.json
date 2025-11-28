@@ -1,0 +1,230 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "connect_robot",
+        "id": "kk$;?mZ2}(b0bbp+ojwQ",
+        "x": 413,
+        "y": -20,
+        "fields": {
+          "IP": "192.168.3.15",
+          "PORT": "6001",
+          "NAME": "MyRobot"
+        },
+        "next": {
+          "block": {
+            "type": "set_speed",
+            "id": "*20t]alcv[f^fB~d]p3|",
+            "inputs": {
+              "VALUE": {
+                "shadow": {
+                  "type": "number_literal",
+                  "id": "(yt~I?S,c%OOs0fw.]g{",
+                  "fields": {
+                    "NUM": 100
+                  }
+                }
+              }
+            },
+            "next": {
+              "block": {
+                "type": "delay",
+                "id": "|SqJjSI:l`(q4$09xNr!",
+                "inputs": {
+                  "DURATION": {
+                    "shadow": {
+                      "type": "number_literal",
+                      "id": "=gMixK[ym;6O@Lyle/vu",
+                      "fields": {
+                        "NUM": 3
+                      }
+                    }
+                  }
+                },
+                "next": {
+                  "block": {
+                    "type": "set_servo_state",
+                    "id": ":|5`Kg{3c~/49=F7:#;q",
+                    "fields": {
+                      "STATE": "unlock"
+                    },
+                    "next": {
+                      "block": {
+                        "type": "delay",
+                        "id": "U:]ojGcx:@z#(ABZ!4l}",
+                        "inputs": {
+                          "DURATION": {
+                            "shadow": {
+                              "type": "number_literal",
+                              "id": "K#@P@Urj,phO!2B_g:5^",
+                              "fields": {
+                                "NUM": 3
+                              }
+                            }
+                          }
+                        },
+                        "next": {
+                          "block": {
+                            "type": "move_joint_absolute",
+                            "id": "88Sp$uZ$E:a9u;a(o[Zb",
+                            "fields": {
+                              "JOINT": "0"
+                            },
+                            "inputs": {
+                              "ANGLE": {
+                                "shadow": {
+                                  "type": "number_literal",
+                                  "id": "DZ#Ek=;Gd2^bC^4HKbYV",
+                                  "fields": {
+                                    "NUM": 10
+                                  }
+                                }
+                              }
+                            },
+                            "next": {
+                              "block": {
+                                "type": "delay",
+                                "id": "s(Gn+D{U-`C;-62~;yby",
+                                "inputs": {
+                                  "DURATION": {
+                                    "shadow": {
+                                      "type": "number_literal",
+                                      "id": "-m.)?1[YJk3lKLoFNhrw",
+                                      "fields": {
+                                        "NUM": 5
+                                      }
+                                    }
+                                  }
+                                },
+                                "next": {
+                                  "block": {
+                                    "type": "move_joint_absolute",
+                                    "id": "2CDpLW|Mn:!Y]p_6~~;+",
+                                    "fields": {
+                                      "JOINT": "1"
+                                    },
+                                    "inputs": {
+                                      "ANGLE": {
+                                        "shadow": {
+                                          "type": "number_literal",
+                                          "id": "H)d2nmAe?sAbo$=oyJJb",
+                                          "fields": {
+                                            "NUM": 10
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "next": {
+                                      "block": {
+                                        "type": "delay",
+                                        "id": "q-QDh?-q1QAjzXF0/pH|",
+                                        "inputs": {
+                                          "DURATION": {
+                                            "shadow": {
+                                              "type": "number_literal",
+                                              "id": "n2NO(1*=U8zUr/ms:sj4",
+                                              "fields": {
+                                                "NUM": 5
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "next": {
+                                          "block": {
+                                            "type": "move_joint_absolute",
+                                            "id": "R4$Cw{v=Ir^;xAjGP5w)",
+                                            "fields": {
+                                              "JOINT": "0"
+                                            },
+                                            "inputs": {
+                                              "ANGLE": {
+                                                "shadow": {
+                                                  "type": "number_literal",
+                                                  "id": "0wua@wuD`ugxf*1U!;ef",
+                                                  "fields": {
+                                                    "NUM": 25
+                                                  }
+                                                }
+                                              }
+                                            },
+                                            "next": {
+                                              "block": {
+                                                "type": "delay",
+                                                "id": "I,0#J{AeDScLp|rIXc#[",
+                                                "inputs": {
+                                                  "DURATION": {
+                                                    "shadow": {
+                                                      "type": "number_literal",
+                                                      "id": "VNmDos7r}tbwaOOqo@L_",
+                                                      "fields": {
+                                                        "NUM": 5
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "next": {
+                                                  "block": {
+                                                    "type": "go_home",
+                                                    "id": "tpRs=XwP)evdT*}b@fq3",
+                                                    "fields": {
+                                                      "MODE": "manual"
+                                                    },
+                                                    "next": {
+                                                      "block": {
+                                                        "type": "delay",
+                                                        "id": "B,/i9PaG3_WWtLO~XLZl",
+                                                        "inputs": {
+                                                          "DURATION": {
+                                                            "shadow": {
+                                                              "type": "number_literal",
+                                                              "id": "Qf@S,$^m(84z_v?V/.`+",
+                                                              "fields": {
+                                                                "NUM": 5
+                                                              }
+                                                            }
+                                                          }
+                                                        },
+                                                        "next": {
+                                                          "block": {
+                                                            "type": "set_servo_state",
+                                                            "id": "!Fk;j5+)qC7m*Y)WW22F",
+                                                            "fields": {
+                                                              "STATE": "lock"
+                                                            },
+                                                            "next": {
+                                                              "block": {
+                                                                "type": "disconnect_robot",
+                                                                "id": ":p,9APFs)`W-kgd:E.8["
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Blockly Workspace</title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            background: radial-gradient(circle at top, #2a2d3e 0%, #16171f 60%);
+            color: #25114e;
+            font-family: "Segoe UI", Arial, sans-serif;
+            overflow: hidden;
+        }
+        #blocklyArea {
+            position: absolute;
+            top: 0;
+            bottom: 70px;
+            left: 0;
+            right: 0;
+        }
+        #blocklyDiv {
+            position: absolute;
+            inset: 16px 16px 0 16px;
+            border-radius: 12px;
+            background: rgba(12, 17, 27, 0.8);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+        }
+        #controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 0 28px;
+            box-sizing: border-box;
+            background: linear-gradient(90deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.75));
+            backdrop-filter: blur(3px);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        button {
+            background: #1457b3;
+            border: none;
+            color: #ffffff;
+            padding: 9px 20px;
+            border-radius: 18px;
+            cursor: pointer;
+            font-size: 13px;
+            letter-spacing: 0.02em;
+            transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(58, 123, 213, 0.25);
+        }
+        button:hover {
+            background: #2d5ea4;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(45, 94, 164, 0.35);
+        }
+        button.primary {
+            background: #02b732;
+            box-shadow: 0 4px 12px rgba(0, 184, 148, 0.25);
+        }
+        button.clear {
+            background: #ca0c0c;
+            box-shadow: 0 4px 12px rgba(202, 12, 12, 0.25);
+        }
+        button.clear:hover {
+            background: #e53939;
+            box-shadow: 0 6px 16px rgba(229, 57, 57, 0.35);
+        }
+        button.primary:hover {
+            background: #1bdd0d;
+            box-shadow: 0 6px 16px rgba(0, 158, 126, 0.35);
+        }
+        button.accent {
+            background: #ff6f61;
+            box-shadow: 0 4px 12px rgba(255, 111, 97, 0.25);
+        }
+        button.accent:hover {
+            background: #e85a4d;
+            box-shadow: 0 6px 16px rgba(232, 90, 77, 0.35);
+        }
+        #examplesOverlay {
+            position: absolute;
+            bottom: 80px;
+            right: 32px;
+            min-width: 240px;
+            background: rgba(22, 24, 34, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 18px 38px rgba(0, 0, 0, 0.45);
+            padding: 14px 16px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        #examplesOverlay .overlay-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #examplesOverlay h3 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+        #examplesOverlay button {
+            background: none;
+            border: none;
+            color: #90a4ae;
+            padding: 0;
+            border-radius: 0;
+            cursor: pointer;
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        #examplesOverlay button:hover {
+            color: #eceff1;
+        }
+        .example-card {
+            background: #25323a;
+            border-radius: 10px;
+            padding: 10px 12px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            transition: transform 0.15s ease, background 0.2s ease;
+        }
+        .example-card:hover {
+            background: #30424c;
+            transform: translateY(-1px);
+        }
+        .example-card strong {
+            font-size: 13px;
+            color: #ffffff;
+        }
+        .example-card span {
+            font-size: 12px;
+            color: #cfd8dc;
+        }
+    </style>
+    <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+    <script src="https://unpkg.com/blockly/msg/en.js"></script>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+</head>
+<body>
+    <div id="blocklyArea">
+        <div id="blocklyDiv"></div>
+    </div>
+    <div id="controls">
+        <button id="saveButton" class="accent">Save Script</button>
+        <button id="loadButton">Load Script</button>
+        <button id="examplesButton">Load Examples</button>
+        <button id="runButton" class="primary">Run Program</button>
+        <button id="clearButton" class="clear">Clear Workspace</button>
+        <input type="file" id="loadFileInput" accept="application/json" style="display:none;" />
+    </div>
+    <xml id="toolbox" style="display: none">
+        <category name="Connection" colour="#4a90e2">
+            <block type="connect_robot"></block>
+            <block type="disconnect_robot"></block>
+            <block type="set_servo_state"></block>
+            <block type="set_speed">
+                <value name="VALUE">
+                    <shadow type="number_literal">
+                        <field name="NUM">30</field>
+                    </shadow>
+                </value>
+            </block>
+        </category>
+        <category name="Motion" colour="#26a69a">
+            <block type="jog_joint">
+                <value name="DELTA">
+                    <shadow type="number_literal">
+                        <field name="NUM">10</field>
+                    </shadow>
+                </value>
+            </block>
+            <block type="jog_linear">
+                <value name="DELTA">
+                    <shadow type="number_literal">
+                        <field name="NUM">50</field>
+                    </shadow>
+                </value>
+            </block>
+            <block type="move_joint_absolute">
+                <value name="ANGLE">
+                    <shadow type="number_literal">
+                        <field name="NUM">0</field>
+                    </shadow>
+                </value>
+            </block>
+            <block type="move_linear_absolute">
+                <value name="X">
+                    <shadow type="number_literal">
+                        <field name="NUM">0</field>
+                    </shadow>
+                </value>
+                <value name="Y">
+                    <shadow type="number_literal">
+                        <field name="NUM">0</field>
+                    </shadow>
+                </value>
+                <value name="Z">
+                    <shadow type="number_literal">
+                        <field name="NUM">0</field>
+                    </shadow>
+                </value>
+                <value name="RX">
+                    <shadow type="number_literal">
+                        <field name="NUM">0</field>
+                    </shadow>
+                </value>
+                <value name="RY">
+                    <shadow type="number_literal">
+                        <field name="NUM">0</field>
+                    </shadow>
+                </value>
+                <value name="RZ">
+                    <shadow type="number_literal">
+                        <field name="NUM">0</field>
+                    </shadow>
+                </value>
+            </block>
+            <block type="go_home"></block>
+        </category>
+        <category name="Control" colour="#ff9800">
+            <block type="delay">
+                <value name="DURATION">
+                    <shadow type="number_literal">
+                        <field name="NUM">1</field>
+                    </shadow>
+                </value>
+            </block>
+            <block type="repeat_loop">
+                <value name="COUNT">
+                    <shadow type="number_literal">
+                        <field name="NUM">3</field>
+                    </shadow>
+                </value>
+            </block>
+            <block type="if_condition"></block>
+            <block type="if_variable_compare">
+                <value name="VALUE">
+                    <shadow type="string_literal">
+                        <field name="TEXT">ready</field>
+                    </shadow>
+                </value>
+            </block>
+        </category>
+        <category name="Variables" colour="#9c27b0">
+            <block type="set_variable">
+                <value name="VALUE">
+                    <shadow type="number_literal">
+                        <field name="NUM">0</field>
+                    </shadow>
+                </value>
+            </block>
+            <block type="get_variable"></block>
+            <block type="number_literal"></block>
+            <block type="string_literal"></block>
+            <block type="boolean_literal"></block>
+        </category>
+        <category name="Sensing" colour="#607d8b">
+            <block type="get_coordinates"></block>
+        </category>
+        <category name="Utilities" colour="#8bc34a">
+            <block type="print_message">
+                <value name="MESSAGE">
+                    <shadow type="string_literal">
+                        <field name="TEXT">Hello</field>
+                    </shadow>
+                </value>
+            </block>
+        </category>
+    </xml>
+    <script>
+        Blockly.defineBlocksWithJsonArray([
+            {
+                "type": "connect_robot",
+                "message0": "connect robot IP %1 Port %2 Name %3",
+                "args0": [
+                    { "type": "field_input", "name": "IP", "text": "192.168.3.15" },
+                    { "type": "field_input", "name": "PORT", "text": "6001" },
+                    { "type": "field_input", "name": "NAME", "text": "MyRobot" }
+                ],
+                "previousStatement": null,
+                "nextStatement": null,
+                "colour": 200,
+                "tooltip": "Connect to the robot using the given address.",
+                "helpUrl": ""
+            },
+            {
+                "type": "disconnect_robot",
+                "message0": "disconnect robot",
+                "previousStatement": null,
+                "nextStatement": null,
+                "colour": 200,
+                "tooltip": "Disconnect from the current robot.",
+                "helpUrl": ""
+            },
+            {
+                "type": "set_servo_state",
+                "message0": "set servo %1",
+                "args0": [
+                    {
+                        "type": "field_dropdown",
+                        "name": "STATE",
+                        "options": [
+                            ["lock", "lock"],
+                            ["unlock", "unlock"]
+                        ]
+                    }
+                ],
+                "previousStatement": null,
+                "nextStatement": null,
+                "colour": 200,
+                "tooltip": "Lock or unlock the robot servos.",
+                "helpUrl": ""
+            },
+            {
+                "type": "set_speed",
+                "message0": "set speed %1",
+                "args0": [
+                    {
+                        "type": "input_value",
+                        "name": "VALUE",
+                        "check": "Number"
+                    }
+                ],
+                "inputsInline": true,
+                "previousStatement": null,
+                "nextStatement": null,
+                "colour": 210,
+                "tooltip": "Set the movement speed (0-100).",
+                "helpUrl": ""
+            },
+            {
+                "type": "jog_joint",
+                "message0": "jog joint %1 by %2 deg",
+                "args0": [
+                    {
+                        "type": "field_dropdown",
+                        "name": "JOINT",
+                        "options": [
+                            ["J1", "0"],
+                            ["J2", "1"],
+                            ["J3", "2"],
+                            ["J4", "3"],
+                            ["J5", "4"],
+                            ["J6", "5"]
+                        ]
+                    },
+                    {
+                        "type": "input_value",
+                        "name": "DELTA",
+                        "check": "Number"
+                    }
+                ],
+                "inputsInline": true,
+                "previousStatement": null,
+                "nextStatement": null,
+                "colour": 260,
+                "tooltip": "Jog a joint by the given degrees (use negative values for reverse).",
+                "helpUrl": ""
+            },
+            {
+                "type": "jog_linear",
+                "message0": "jog axis %1 by %2 mm",
+                "args0": [
+                    {
+                        "type": "field_dropdown",
+                        "name": "AXIS",
+                        "options": [
+                            ["X", "0"],
+                            ["Y", "1"],
+                            ["Z", "2"]
+                        ]
+                    },
+                    {
+                        "type": "input_value",
+                        "name": "DELTA",
+                        "check": "Number"
+                    }
+                ],
+                "inputsInline": true,
+                "previousStatement": null,
+                "nextStatement": null,
+                "colour": 260,
+                "tooltip": "Jog linearly along the selected axis (use negative values to reverse).",
+                "helpUrl": ""
+            },
+            {
+                "type": "move_joint_absolute",
+                "message0": "move joint %1 to %2 deg",
+                "args0": [
+                    {
+                        "type": "field_dropdown",
+                        "name": "JOINT",
+                        "options": [
+                            ["J1", "0"],
+                            ["J2", "1"],
+                            ["J3", "2"],
+                            ["J4", "3"],
+                            ["J5", "4"],
+                            ["J6", "5"]
+                        ]
+                    },
+                    {
+                        "type": "input_value",
+                        "name": "ANGLE",
+                        "check": "Number"
+                    }
+                ],
+                "inputsInline": true,
+                "previousStatement": null,
+                "nextStatement": null,
+                "colour": 180,
+                "tooltip": "Move a joint to an absolute angle.",
+                "helpUrl": ""
+            },
+            {
+                "type": "move_linear_absolute",
+                "message0": "move to %1 frame",
+                "args0": [
+                    {
+                        "type": "field_dropdown",
+                        "name": "MODE",
+                        "options": [
+                            ["tool", "tool"],
+                            ["origin", "origin"],
+                            ["base", "base"]
+                        ]
+                    }
+                ],
+                "message1": "X %1 Y %2 Z %3",
+                "args1": [
+                    { "type": "input_value", "name": "X", "check": "Number" },
+                    { "type": "input_value", "name": "Y", "check": "Number" },
+                    { "type": "input_value", "name": "Z", "check": "Number" }
+                ],
+                "message2": "RX %1 RY %2 RZ %3",
+                "args2": [
+                    { "type": "input_value", "name": "RX", "check": "Number" },
+                    { "type": "input_value", "name": "RY", "check": "Number" },
+                    { "type": "input_value", "name": "RZ", "check": "Number" }
+                ],
+                "previousStatement": null,
+                "nextStatement": null,
+                "colour": 180,
+                "tooltip": "Move linearly to absolute coordinates with orientation.",
+                "helpUrl": ""
+            },
+            {
+                "type": "go_home",
+                "message0": "move to home (%1)",
+                "args0": [
+                    {
+                        "type": "field_dropdown",
+                        "name": "MODE",
+                        "options": [
+                            ["manual", "manual"],
+                            ["library", "library"]
+                        ]
+                    }
+                ],
+                "previousStatement": null,
+                "nextStatement": null,
+                "colour": 160,
+                "tooltip": "Move the robot to the configured home pose.",
+                "helpUrl": ""
+            },
+            {
+                "type": "delay",
+                "message0": "wait %1 seconds",
+                "args0": [
+                    {
+                        "type": "input_value",
+                        "name": "DURATION",
+                        "check": "Number"
+                    }
+                ],
+                "inputsInline": true,
+                "previousStatement": null,
+                "nextStatement": null,
+                "colour": 120,
+                "tooltip": "Pause program execution for the given time.",
+                "helpUrl": ""
+            },
+            {
+                "type": "repeat_loop",
+                "message0": "repeat %1 times",
+                "args0": [
+                    {
+                        "type": "input_value",
+                        "name": "COUNT",
+                        "check": "Number"
+                    }
+                ],
+                "message1": "do %1",
+                "args1": [
+                    {
+                        "type": "input_statement",
+                        "name": "BODY"
+                    }
+                ],
+                "previousStatement": null,
+                "nextStatement": null,
+                "colour": 45,
+                "tooltip": "Repeat contained actions a fixed number of times.",
+                "helpUrl": ""
+            },
+            {
+                "type": "if_condition",
+                "message0": "if %1 is %2",
+                "args0": [
+                    {
+                        "type": "field_dropdown",
+                        "name": "COND",
+                        "options": [
+                            ["robot connected", "is_connected"],
+                            ["servo locked", "servo_locked"]
+                        ]
+                    },
+                    {
+                        "type": "field_dropdown",
+                        "name": "COND_VALUE",
+                        "options": [
+                            ["true", "true"],
+                            ["false", "false"]
+                        ]
+                    }
+                ],
+                "message1": "do %1",
+                "args1": [
+                    {
+                        "type": "input_statement",
+                        "name": "DO"
+                    }
+                ],
+                "message2": "else %1",
+                "args2": [
+                    {
+                        "type": "input_statement",
+                        "name": "ELSE"
+                    }
+                ],
+                "previousStatement": null,
+                "nextStatement": null,
+                "colour": 30,
+                "tooltip": "Run different actions based on robot state.",
+                "helpUrl": ""
+            },
+            {
+                "type": "if_variable_compare",
+                "message0": "if variable %1 %2 %3",
+                "args0": [
+                    { "type": "field_input", "name": "NAME", "text": "var" },
+                    {
+                        "type": "field_dropdown",
+                        "name": "OP",
+                        "options": [
+                            ["=", "EQ"],
+                            ["\u2260", "NEQ"],
+                            ["<", "LT"],
+                            ["<=", "LTE"],
+                            [">", "GT"],
+                            [">=", "GTE"]
+                        ]
+                    },
+                    {
+                        "type": "input_value",
+                        "name": "VALUE"
+                    }
+                ],
+                "message1": "do %1",
+                "args1": [
+                    {
+                        "type": "input_statement",
+                        "name": "DO"
+                    }
+                ],
+                "message2": "else %1",
+                "args2": [
+                    {
+                        "type": "input_statement",
+                        "name": "ELSE"
+                    }
+                ],
+                "previousStatement": null,
+                "nextStatement": null,
+                "colour": 15,
+                "tooltip": "Compare a variable to a value and branch accordingly.",
+                "helpUrl": ""
+            },
+            {
+                "type": "set_variable",
+                "message0": "set %1 to %2",
+                "args0": [
+                    { "type": "field_input", "name": "NAME", "text": "var" },
+                    { "type": "input_value", "name": "VALUE" }
+                ],
+                "inputsInline": true,
+                "previousStatement": null,
+                "nextStatement": null,
+                "colour": 280,
+                "tooltip": "Store a value for later use.",
+                "helpUrl": ""
+            },
+            {
+                "type": "get_variable",
+                "message0": "value of %1",
+                "args0": [
+                    { "type": "field_input", "name": "NAME", "text": "var" }
+                ],
+                "output": null,
+                "colour": 280,
+                "tooltip": "Use a previously stored value.",
+                "helpUrl": ""
+            },
+            {
+                "type": "number_literal",
+                "message0": "%1",
+                "args0": [
+                    { "type": "field_number", "name": "NUM", "value": 0 }
+                ],
+                "output": "Number",
+                "colour": 300,
+                "tooltip": "A numeric literal.",
+                "helpUrl": ""
+            },
+            {
+                "type": "string_literal",
+                "message0": "text %1",
+                "args0": [
+                    { "type": "field_input", "name": "TEXT", "text": "" }
+                ],
+                "output": "String",
+                "colour": 320,
+                "tooltip": "A string literal.",
+                "helpUrl": ""
+            },
+            {
+                "type": "boolean_literal",
+                "message0": "boolean %1",
+                "args0": [
+                    {
+                        "type": "field_dropdown",
+                        "name": "BOOL",
+                        "options": [
+                            ["true", "TRUE"],
+                            ["false", "FALSE"]
+                        ]
+                    }
+                ],
+                "output": "Boolean",
+                "colour": 340,
+                "tooltip": "A boolean literal.",
+                "helpUrl": ""
+            },
+            {
+                "type": "print_message",
+                "message0": "print %1",
+                "args0": [
+                    { "type": "input_value", "name": "MESSAGE" }
+                ],
+                "inputsInline": true,
+                "previousStatement": null,
+                "nextStatement": null,
+                "colour": 100,
+                "tooltip": "Show a message in the terminal log.",
+                "helpUrl": ""
+            },
+            {
+                "type": "get_coordinates",
+                "message0": "read %1 coordinates store in %2",
+                "args0": [
+                    {
+                        "type": "field_dropdown",
+                        "name": "MODE",
+                        "options": [
+                            ["joint", "joint"],
+                            ["tool", "tool"],
+                            ["origin", "origin"],
+                            ["base", "base"]
+                        ]
+                    },
+                    { "type": "field_input", "name": "TARGET", "text": "coords" }
+                ],
+                "previousStatement": null,
+                "nextStatement": null,
+                "colour": 210,
+                "tooltip": "Read robot coordinates and optionally store them in a variable.",
+                "helpUrl": ""
+            }
+        ]);
+
+        const workspace = Blockly.inject('blocklyDiv', {
+            toolbox: document.getElementById('toolbox'),
+            trashcan: true,
+            scrollbars: true,
+            renderer: 'zelos'
+        });
+
+        const loadFileInput = document.getElementById('loadFileInput');
+        let bridge = null;
+        let examplesOverlay = null;
+
+        new QWebChannel(qt.webChannelTransport, function (channel) {
+            bridge = channel.objects.blocklyBridge;
+        });
+
+        function appendChain(block, steps) {
+            let current = block;
+            while (current) {
+                const payload = blockToStep(current);
+                if (payload) {
+                    steps.push(payload);
+                }
+                current = current.getNextBlock();
+            }
+        }
+
+        function buildBranchSteps(block) {
+            const branchSteps = [];
+            if (block) {
+                appendChain(block, branchSteps);
+            }
+            return branchSteps;
+        }
+
+        function literalNumber(value) {
+            return { kind: 'literal', valueType: 'number', value: Number(value) };
+        }
+
+        function literalString(value) {
+            return { kind: 'literal', valueType: 'string', value: String(value) };
+        }
+
+        function literalBoolean(value) {
+            return { kind: 'literal', valueType: 'boolean', value: Boolean(value) };
+        }
+
+        function expressionFromBlock(block) {
+            if (!block) {
+                return null;
+            }
+            switch (block.type) {
+                case 'number_literal':
+                    return literalNumber(block.getFieldValue('NUM') || 0);
+                case 'string_literal':
+                    return literalString(block.getFieldValue('TEXT') || '');
+                case 'boolean_literal':
+                    return literalBoolean(block.getFieldValue('BOOL') !== 'FALSE');
+                case 'get_variable':
+                    return { kind: 'variable', name: (block.getFieldValue('NAME') || '').trim() };
+                case 'math_number':
+                    return literalNumber(block.getFieldValue('NUM') || 0);
+                case 'text':
+                    return literalString(block.getFieldValue('TEXT') || '');
+                case 'logic_boolean':
+                    return literalBoolean(block.getFieldValue('BOOL') !== 'FALSE');
+                default:
+                    console.warn('Unsupported value block', block.type);
+                    return null;
+            }
+        }
+
+        function valueToExpression(parentBlock, inputName, fallbackExpression) {
+            if (!parentBlock) {
+                return fallbackExpression || null;
+            }
+            const target = parentBlock.getInputTargetBlock(inputName);
+            if (!target) {
+                return fallbackExpression || null;
+            }
+            return expressionFromBlock(target) || fallbackExpression || null;
+        }
+
+        function blockToStep(block) {
+            switch (block.type) {
+                case 'connect_robot':
+                    return {
+                        type: 'connect_robot',
+                        ip: block.getFieldValue('IP') || '',
+                        port: block.getFieldValue('PORT') || '',
+                        name: block.getFieldValue('NAME') || ''
+                    };
+                case 'disconnect_robot':
+                    return {
+                        type: 'disconnect_robot'
+                    };
+                case 'set_servo_state':
+                    return {
+                        type: 'set_servo_state',
+                        state: block.getFieldValue('STATE') || 'lock'
+                    };
+                case 'set_speed':
+                    return {
+                        type: 'set_speed',
+                        value: valueToExpression(block, 'VALUE', literalNumber(0))
+                    };
+                case 'jog_joint':
+                    return {
+                        type: 'jog_joint',
+                        joint: block.getFieldValue('JOINT') || '0',
+                        delta: valueToExpression(block, 'DELTA', literalNumber(0))
+                    };
+                case 'jog_linear':
+                    return {
+                        type: 'jog_linear',
+                        axis: block.getFieldValue('AXIS') || '0',
+                        delta: valueToExpression(block, 'DELTA', literalNumber(0))
+                    };
+                case 'move_joint_absolute':
+                    return {
+                        type: 'move_joint_absolute',
+                        joint: block.getFieldValue('JOINT') || '0',
+                        angle: valueToExpression(block, 'ANGLE', literalNumber(0))
+                    };
+                case 'move_linear_absolute':
+                    return {
+                        type: 'move_linear_absolute',
+                        mode: block.getFieldValue('MODE') || 'tool',
+                        x: valueToExpression(block, 'X', null),
+                        y: valueToExpression(block, 'Y', null),
+                        z: valueToExpression(block, 'Z', null),
+                        rx: valueToExpression(block, 'RX', null),
+                        ry: valueToExpression(block, 'RY', null),
+                        rz: valueToExpression(block, 'RZ', null)
+                    };
+                case 'go_home':
+                    return {
+                        type: 'go_home',
+                        mode: block.getFieldValue('MODE') || 'manual'
+                    };
+                case 'delay':
+                    return {
+                        type: 'delay',
+                        duration: valueToExpression(block, 'DURATION', literalNumber(0))
+                    };
+                case 'repeat_loop':
+                    return {
+                        type: 'repeat_loop',
+                        count: valueToExpression(block, 'COUNT', literalNumber(0)),
+                        body: buildBranchSteps(block.getInputTargetBlock('BODY'))
+                    };
+                case 'if_condition':
+                    return {
+                        type: 'if_condition',
+                        condition: {
+                            type: block.getFieldValue('COND') || 'is_connected',
+                            value: block.getFieldValue('COND_VALUE') !== 'false',
+                            true_branch: buildBranchSteps(block.getInputTargetBlock('DO')),
+                            false_branch: buildBranchSteps(block.getInputTargetBlock('ELSE'))
+                        }
+                    };
+                case 'if_variable_compare':
+                    return {
+                        type: 'if_variable_compare',
+                        name: (block.getFieldValue('NAME') || '').trim(),
+                        operator: block.getFieldValue('OP') || 'EQ',
+                        value: valueToExpression(block, 'VALUE', literalString('')),
+                        true_branch: buildBranchSteps(block.getInputTargetBlock('DO')),
+                        false_branch: buildBranchSteps(block.getInputTargetBlock('ELSE'))
+                    };
+                case 'set_variable':
+                    return {
+                        type: 'set_variable',
+                        name: (block.getFieldValue('NAME') || '').trim(),
+                        value: valueToExpression(block, 'VALUE', literalString(''))
+                    };
+                case 'print_message':
+                    return {
+                        type: 'print',
+                        message: valueToExpression(block, 'MESSAGE', literalString(''))
+                    };
+                case 'get_coordinates':
+                    return {
+                        type: 'get_coordinates',
+                        mode: block.getFieldValue('MODE') || 'joint',
+                        store: (block.getFieldValue('TARGET') || '').trim()
+                    };
+                case 'get_variable':
+                case 'number_literal':
+                case 'string_literal':
+                case 'boolean_literal':
+                    return null;
+                default:
+                    console.warn('Unsupported statement block', block.type);
+                    return null;
+            }
+        }
+
+        function buildProgram() {
+            const steps = [];
+            const topBlocks = workspace.getTopBlocks(true);
+            topBlocks.sort(function (a, b) {
+                return a.getRelativeToSurfaceXY().y - b.getRelativeToSurfaceXY().y;
+            });
+            topBlocks.forEach(function (block) {
+                appendChain(block, steps);
+            });
+            return steps;
+        }
+
+        function requestSaveWorkspace() {
+            if (!bridge) {
+                console.warn('Bridge is not ready yet.');
+                return;
+            }
+            try {
+                const state = Blockly.serialization.workspaces.save(workspace);
+                bridge.saveProgram(JSON.stringify(state, null, 2));
+            } catch (err) {
+                console.error('Failed to prepare workspace for saving', err);
+                alert('Unable to save script. See console for details.');
+            }
+        }
+
+        function loadWorkspaceFromState(state) {
+            workspace.clear();
+            Blockly.serialization.workspaces.load(state, workspace);
+        }
+
+        function handleLoadFile(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) {
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function (loadEvent) {
+                try {
+                    const text = loadEvent.target?.result;
+                    const state = JSON.parse(text);
+                    loadWorkspaceFromState(state);
+                } catch (err) {
+                    console.error('Failed to load workspace', err);
+                    alert('Unable to load script. Ensure it is a valid Blockly JSON file.');
+                }
+            };
+            reader.readAsText(file);
+            loadFileInput.value = '';
+        }
+
+        const EXAMPLES = [
+            {
+                label: 'Variables and Checks',
+                description: 'Set a status variable, loop, read coords, and branch.',
+                state: {
+                    blocks: {
+                        languageVersion: 0,
+                        blocks: [
+                            {
+                                type: 'set_variable',
+                                id: 'set_status',
+                                x: 420,
+                                y: 30,
+                                fields: {
+                                    NAME: 'status'
+                                },
+                                inputs: {
+                                    VALUE: {
+                                        shadow: {
+                                            type: 'string_literal',
+                                            id: 'status_value',
+                                            fields: {
+                                                TEXT: 'ready'
+                                            }
+                                        }
+                                    }
+                                },
+                                next: {
+                                    block: {
+                                        type: 'repeat_loop',
+                                        id: 'loop_block',
+                                        inputs: {
+                                            COUNT: {
+                                                shadow: {
+                                                    type: 'number_literal',
+                                                    id: 'loop_count',
+                                                    fields: {
+                                                        NUM: 3
+                                                    }
+                                                }
+                                            },
+                                            BODY: {
+                                                block: {
+                                                    type: 'print_message',
+                                                    id: 'print_loop',
+                                                    inputs: {
+                                                        MESSAGE: {
+                                                            shadow: {
+                                                                type: 'string_literal',
+                                                                id: 'loop_text',
+                                                                fields: {
+                                                                    TEXT: 'Loop step'
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    next: {
+                                                        block: {
+                                                            type: 'delay',
+                                                            id: 'loop_delay',
+                                                            inputs: {
+                                                                DURATION: {
+                                                                    shadow: {
+                                                                        type: 'number_literal',
+                                                                        id: 'loop_delay_value',
+                                                                        fields: {
+                                                                            NUM: 0.5
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        next: {
+                                            block: {
+                                                type: 'get_coordinates',
+                                                id: 'coords_block',
+                                                fields: {
+                                                    MODE: 'tool',
+                                                    TARGET: 'coords'
+                                                },
+                                                next: {
+                                                    block: {
+                                                        type: 'if_variable_compare',
+                                                        id: 'status_check',
+                                                        fields: {
+                                                            NAME: 'status',
+                                                            OP: 'EQ'
+                                                        },
+                                                        inputs: {
+                                                            VALUE: {
+                                                                shadow: {
+                                                                    type: 'string_literal',
+                                                                    id: 'status_compare',
+                                                                    fields: {
+                                                                        TEXT: 'ready'
+                                                                    }
+                                                                }
+                                                            },
+                                                            DO: {
+                                                                block: {
+                                                                    type: 'print_message',
+                                                                    id: 'status_ok',
+                                                                    inputs: {
+                                                                        MESSAGE: {
+                                                                            shadow: {
+                                                                                type: 'string_literal',
+                                                                                id: 'status_ok_text',
+                                                                                fields: {
+                                                                                    TEXT: 'Status confirmed'
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            ELSE: {
+                                                                block: {
+                                                                    type: 'print_message',
+                                                                    id: 'status_fail',
+                                                                    inputs: {
+                                                                        MESSAGE: {
+                                                                            shadow: {
+                                                                                type: 'string_literal',
+                                                                                id: 'status_fail_text',
+                                                                                fields: {
+                                                                                    TEXT: 'Status mismatch'
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+            ,
+            {
+                label: 'Connect and JOG',
+                description: 'Connect, wait 1s, unlock, jog J1 by 10°, wait 5s, then lock.',
+                state: {
+                    blocks: {
+                        languageVersion: 0,
+                        blocks: [
+                            {
+                                type: 'connect_robot',
+                                id: 'ex3_connect',
+                                x: 36,
+                                y: 280,
+                                fields: {
+                                    IP: '192.168.3.15',
+                                    PORT: '6001',
+                                    NAME: 'MyRobot'
+                                },
+                                next: {
+                                    block: {
+                                        type: 'delay',
+                                        id: 'ex3_delay1',
+                                        inputs: {
+                                            DURATION: {
+                                                shadow: {
+                                                    type: 'number_literal',
+                                                    id: 'ex3_delay1_val',
+                                                    fields: { NUM: 1 }
+                                                }
+                                            }
+                                        },
+                                        next: {
+                                            block: {
+                                                type: 'set_servo_state',
+                                                id: 'ex3_unlock',
+                                                fields: { STATE: 'unlock' },
+                                                next: {
+                                                    block: {
+                                                        type: 'jog_joint',
+                                                        id: 'ex3_jog',
+                                                        fields: { JOINT: '0' },
+                                                        inputs: {
+                                                            DELTA: {
+                                                                shadow: {
+                                                                    type: 'number_literal',
+                                                                    id: 'ex3_jog_delta',
+                                                                    fields: { NUM: 10 }
+                                                                }
+                                                            }
+                                                        },
+                                                        next: {
+                                                            block: {
+                                                                type: 'delay',
+                                                                id: 'ex3_delay2',
+                                                                inputs: {
+                                                                    DURATION: {
+                                                                        shadow: {
+                                                                            type: 'number_literal',
+                                                                            id: 'ex3_delay2_val',
+                                                                            fields: { NUM: 5 }
+                                                                        }
+                                                                    }
+                                                                },
+                                                                next: {
+                                                                    block: {
+                                                                        type: 'set_servo_state',
+                                                                        id: 'ex3_lock',
+                                                                        fields: { STATE: 'lock' }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        ];
+
+        function loadExample(index) {
+            const example = EXAMPLES[index];
+            if (!example) {
+                return;
+            }
+            try {
+                loadWorkspaceFromState(example.state);
+            } catch (err) {
+                console.error('Failed to load example', err);
+                alert('Unable to load example program.');
+            }
+        }
+
+        function toggleExamplesOverlay() {
+            if (examplesOverlay) {
+                examplesOverlay.remove();
+                examplesOverlay = null;
+                return;
+            }
+
+            examplesOverlay = document.createElement('div');
+            examplesOverlay.id = 'examplesOverlay';
+
+            const header = document.createElement('div');
+            header.className = 'overlay-header';
+
+            const title = document.createElement('h3');
+            title.textContent = 'Example Programs';
+            header.appendChild(title);
+
+            const closeButton = document.createElement('button');
+            closeButton.textContent = 'Close';
+            closeButton.addEventListener('click', function () {
+                if (examplesOverlay) {
+                    examplesOverlay.remove();
+                    examplesOverlay = null;
+                }
+            });
+            header.appendChild(closeButton);
+
+            examplesOverlay.appendChild(header);
+
+            EXAMPLES.forEach(function (example, index) {
+                const card = document.createElement('div');
+                card.className = 'example-card';
+
+                const name = document.createElement('strong');
+                name.textContent = example.label;
+                card.appendChild(name);
+
+                const desc = document.createElement('span');
+                desc.textContent = example.description;
+                card.appendChild(desc);
+
+                card.addEventListener('click', function () {
+                    loadExample(index);
+                    if (examplesOverlay) {
+                        examplesOverlay.remove();
+                        examplesOverlay = null;
+                    }
+                });
+
+                examplesOverlay.appendChild(card);
+            });
+
+            document.body.appendChild(examplesOverlay);
+        }
+
+        document.addEventListener('click', function (event) {
+            if (!examplesOverlay) {
+                return;
+            }
+            if (event.target.closest('#examplesOverlay') || event.target.closest('#examplesButton')) {
+                return;
+            }
+            examplesOverlay.remove();
+            examplesOverlay = null;
+        });
+
+        document.getElementById('runButton').addEventListener('click', function () {
+            if (!bridge) {
+                console.warn('Bridge is not ready yet.');
+                return;
+            }
+            const program = buildProgram();
+            bridge.runProgram(JSON.stringify(program));
+        });
+
+        document.getElementById('clearButton').addEventListener('click', function () {
+            workspace.clear();
+        });
+
+    document.getElementById('saveButton').addEventListener('click', requestSaveWorkspace);
+
+        document.getElementById('loadButton').addEventListener('click', function () {
+            loadFileInput.click();
+        });
+
+        document.getElementById('examplesButton').addEventListener('click', toggleExamplesOverlay);
+
+        loadFileInput.addEventListener('change', handleLoadFile);
+
+        window.addEventListener('resize', onResize, false);
+
+        function onResize() {
+            const area = document.getElementById('blocklyArea');
+            const rect = area.getBoundingClientRect();
+            const div = document.getElementById('blocklyDiv');
+            div.style.left = rect.left + 'px';
+            div.style.top = rect.top + 'px';
+            div.style.width = rect.width + 'px';
+            div.style.height = rect.height + 'px';
+            Blockly.svgResize(workspace);
+        }
+
+        onResize();
+    </script>
+</body>
+</html>

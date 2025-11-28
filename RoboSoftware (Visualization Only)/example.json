@@ -1,0 +1,90 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "connect_robot",
+        "id": "e6LOm[u,*wr)/vZueX$7",
+        "x": 500,
+        "y": 60,
+        "fields": {
+          "IP": "192.168.3.15",
+          "PORT": "6001",
+          "NAME": "MyRobot"
+        },
+        "next": {
+          "block": {
+            "type": "delay",
+            "id": "Cs7Qm8,v@s#(=~jNT,v(",
+            "inputs": {
+              "DURATION": {
+                "shadow": {
+                  "type": "number_literal",
+                  "id": "oxrp,P3Zdk!suK_.TjhT",
+                  "fields": {
+                    "NUM": 1
+                  }
+                }
+              }
+            },
+            "next": {
+              "block": {
+                "type": "set_servo_state",
+                "id": "G=5;5CwOjbh5|y8(#+u!",
+                "fields": {
+                  "STATE": "unlock"
+                },
+                "next": {
+                  "block": {
+                    "type": "jog_joint",
+                    "id": "pP+IL3kxRefuJ=d4Zv8!",
+                    "fields": {
+                      "JOINT": "0"
+                    },
+                    "inputs": {
+                      "DELTA": {
+                        "shadow": {
+                          "type": "number_literal",
+                          "id": "vK=wqSqztt2SN]XVEt`P",
+                          "fields": {
+                            "NUM": 10
+                          }
+                        }
+                      }
+                    },
+                    "next": {
+                      "block": {
+                        "type": "delay",
+                        "id": "Et4ulY)ZZ.!:hO_#8}8:",
+                        "inputs": {
+                          "DURATION": {
+                            "shadow": {
+                              "type": "number_literal",
+                              "id": "IOoiHL?#-J}U{])q+-bm",
+                              "fields": {
+                                "NUM": 5
+                              }
+                            }
+                          }
+                        },
+                        "next": {
+                          "block": {
+                            "type": "set_servo_state",
+                            "id": "Olq?hL!_sE%,KAO$6Aek",
+                            "fields": {
+                              "STATE": "lock"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}
