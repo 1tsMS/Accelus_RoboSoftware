@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Robotic Arm Blockly</title>
+  <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+  <script>
+    let pyBridge = null;
+    new QWebChannel(qt.webChannelTransport, function(channel) {
+    pyBridge = channel.objects.pyBridge;
+    });
+</script>
+
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    #blocklyDiv {
+      height: 100%;
+      width: 100%;
+    }
+    #buttonBar {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 10;
+    }
+    #buttonBar button {
+      padding: 8px 16px;
+      margin-left: 6px;
+      font-size: 14px;
+      background: #4CAF50;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    #buttonBar button:hover {
+      background: #45a049;
+    }
+    /* Side panel */
+    #codePanel {
+      position: absolute;
+      top: 60px; /* below buttons */
+      right: 10px;
+      width: 400px;
+      max-width: 40%;
+      height: 70%;
+      background: #1e1e1e;
+      color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      display: none; /* hidden by default */
+      flex-direction: column;
+      z-index: 20;
+    }
+    #codePanel pre {
+      flex: 1;
+      margin: 0;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 14px;
+      overflow-y: auto;
+      white-space: pre;
+    }
+  </style>
+  <script src="node_modules/blockly/blockly_compressed.js"></script>
+  <script src="node_modules/blockly/blocks_compressed.js"></script>
+  <script src="node_modules/blockly/python_compressed.js"></script>
+  <script src="node_modules/blockly/msg/en.js"></script>
+  <script src="js/toolbox_definition.js"></script>
+  <script src="js/custom_blocks.js"></script>
+  <script src="js/app.js"></script>
+</head>
+<body>
+  <div id="buttonBar">
+    <button id="runButton">Run</button>
+    <button id="toggleCodeButton">Show Code</button>
+  </div>
+  <div id="buttonBar">
+    <button id="runButton">Run</button>
+    <button id="toggleCodeButton">Show Code</button>
+    <button id="saveCodeButton">Save Code</button>
+</div>
+  <div id="blocklyDiv"></div>
+
+  <!-- Code Panel -->
+  <div id="codePanel">
+    <pre id="codeArea"># Python code will appear here...</pre>
+  </div>
+</body>
+</html>

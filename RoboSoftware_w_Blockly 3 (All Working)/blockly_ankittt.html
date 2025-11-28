@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Robot Control with Blockly</title>
+  <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+  <script src="https://unpkg.com/blockly/python.min.js"></script>
+  <style>
+    body { 
+        font-family: 'Helvetica Neue', sans-serif; 
+        display: flex; 
+        height: 100vh; 
+        margin: 0; 
+        background-color: #f0f2f5;
+    }
+    #blocklyDiv { 
+        height: 100%; 
+        width: 70%; 
+        border-right: 2px solid #ddd;
+    }
+    #codeDiv { 
+        height: 100%; 
+        width: 30%; 
+        padding: 15px; 
+        box-sizing: border-box; 
+        display: flex;
+        flex-direction: column;
+        background-color: #fff;
+    }
+    h2 {
+        color: #333;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 5px;
+        margin-top: 0;
+    }
+    #button-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    button {
+        padding: 8px 12px;
+        font-size: 14px;
+        background-color: #555;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        flex-grow: 1;
+    }
+    button.run { background-color: #28a745; }
+    button.run:hover { background-color: #218838; }
+    button.save { background-color: #007bff; }
+    button.save:hover { background-color: #0069d9; }
+    button.load { background-color: #17a2b8; }
+    button.load:hover { background-color: #138496; }
+    button.clear { background-color: #dc3545; }
+    button.clear:hover { background-color: #c82333; }
+    button.example { background-color: #ffc107; color: #212529; }
+    button.example:hover { background-color: #e0a800; }
+
+    pre { 
+        white-space: pre-wrap; 
+        background-color: #2d2d2d; 
+        color: #f0f0f0;
+        border: 1px solid #ddd; 
+        padding: 10px; 
+        flex-grow: 1;
+        overflow-y: auto;
+        border-radius: 5px;
+        font-family: 'Courier New', monospace;
+    }
+  </style>
+</head>
+<body>
+  <div id="blocklyDiv"></div>
+
+  <div id="codeDiv">
+    <h2>Controls & Code</h2>
+    <div id="button-bar">
+        <button class="run" onclick="runCode()">▶️ Run Code</button>
+        <button class="save" onclick="saveWorkspace()">💾 Save</button>
+        <button class="load" onclick="triggerLoad()">📂 Load</button>
+        <button class="clear" onclick="clearWorkspace()">🗑️ Clear</button>
+        <button class="example" onclick="loadExample()">🌟 Example</button>
+    </div>
+    <pre id="content_pre"># Python code will appear here...</pre>
+    <input type="file" id="loadInput" style="display: none;" onchange="loadWorkspace(event)" accept=".xml,text/xml">
+  </div>
+
+  <xml id="toolbox" style="display: none">
+    <category name="Setup" colour="#5b80a5">
+        <block type="robot_init"></block>
+        <block type="robot_connect"></block>
+        <block type="robot_disconnect"></block>
+    </category>
+    <category name="Control" colour="#c0392b">
+        <block type="robot_set_servo_poweron"></block>
+        <block type="robot_set_servo_poweroff"></block>
+        <block type="robot_clear_error"></block>
+        <block type="robot_job_stop"></block>
+        <block type="robot_go_home"></block>
+        <block type="controls_wait"></block>
+    </category>
+    <category name="Movement" colour="#27ae60">
+        <block type="robot_movej"></block>
+        <block type="robot_movel"></block>
+        <block type="robot_set_speed"></block>
+        <block type="robot_start_jogging"></block>
+        <block type="robot_stop_jogging"></block>
+    </category>
+    <category name="Getters (State)" colour="#f39c12">
+        <block type="robot_get_connection_status"></block>
+        <block type="robot_get_servo_state"></block>
+        <block type="robot_get_current_position"></block>
+        <block type="robot_get_robot_running_state"></block>
+        <block type="robot_get_speed"></block>
+        <block type="robot_get_current_coord"></block>
+        <block type="robot_get_current_mode"></block>
+    </category>
+    <category name="Setters (Config)" colour="#8e44ad">
+        <block type="robot_set_current_coord"></block>
+        <block type="robot_set_current_mode"></block>
+    </category>
+    <category name="Logic" colour="%{BKY_LOGIC_HUE}">
+      <block type="controls_if"></block>
+      <block type="logic_compare"></block>
+      <block type="logic_operation"></block>
+      <block type="logic_negate"></block>
+      <block type="logic_boolean"></block>
+    </category>
+    <category name="Loops" colour="%{BKY_LOOPS_HUE}">
+      <block type="controls_repeat_ext">
+        <value name="TIMES">
+          <shadow type="math_number">
+            <field name="NUM">10</field>
+          </shadow>
+        </value>
+      </block>
+    </category>
+    <category name="Math" colour="%{BKY_MATH_HUE}">
+      <block type="math_number"></block>
+    </category>
+    <category name="Lists" colour="%{BKY_LISTS_HUE}">
+      <block type="lists_create_with">
+        <mutation items="7"></mutation>
+      </block>
+    </category>
+    <category name="Variables" colour="%{BKY_VARIABLES_HUE}" custom="VARIABLE"></category>
+  </xml>
+
+  <script>
+    /***********************************/
+    /*** CUSTOM BLOCK DEFINITIONS  ***/
+    /***********************************/
+
+    Blockly.Blocks['controls_wait'] = {
+      init: function() {
+        this.appendValueInput("SECONDS")
+            .setCheck("Number")
+            .appendField("Wait for");
+        this.appendDummyInput()
+            .appendField("seconds");
+        this.setInputsInline(true);
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour("#c0392b");
+        this.setTooltip("Pauses the program for the specified number of seconds.");
+      }
+    };
+    const COORD_DROPDOWN = [["Joint", "0"], ["Cartesian", "1"]];
+    const MODE_DROPDOWN = [["Teach", "0"], ["Play", "1"], ["Remote", "2"]];
+    const AXIS_DROPDOWN = [["Axis 1", "1"], ["Axis 2", "2"], ["Axis 3", "3"], ["Axis 4", "4"], ["Axis 5", "5"], ["Axis 6", "6"], ["Axis 7", "7"]];
+    const DIR_DROPDOWN = [["Positive (+)", "True"], ["Negative (-)", "False"]];
+    Blockly.Blocks['robot_init'] = {
+      init: function() {
+        this.appendDummyInput()
+            .appendField("Initialize Robot (on server)");
+        this.setNextStatement(true, null);
+        this.setColour("#5b80a5");
+        this.setTooltip("This block marks the start of the program. Initialization happens on the server.");
+      }
+    };
+    Blockly.Blocks['robot_connect'] = {
+      init: function() {
+        this.appendDummyInput()
+            .appendField("Connect to Robot");
+        this.appendValueInput("IP")
+            .setCheck("String")
+            .appendField("IP Address");
+        this.appendValueInput("PORT")
+            .setCheck("String")
+            .appendField("Port");
+        this.appendValueInput("ROBOT_NAME")
+            .setCheck("String")
+            .appendField("Robot Name");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour("#5b80a5");
+        this.setTooltip("Connect to the specified robot.");
+      }
+    };
+    Blockly.Blocks['robot_disconnect'] = {
+      init: function() {
+        this.appendValueInput("ROBOT_NAME")
+            .setCheck("String")
+            .appendField("Disconnect from Robot");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour("#5b80a5");
+        this.setTooltip("Disconnect from the specified robot.");
+      }
+    };
+    Blockly.Blocks['robot_set_servo_poweron'] = {
+      init: function() {
+        this.appendValueInput("ROBOT_NAME")
+            .setCheck("String")
+            .appendField("Servo Power ON for");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour("#c0392b");
+        this.setTooltip("Turns the servo motors on.");
+      }
+    };
+    Blockly.Blocks['robot_set_servo_poweroff'] = {
+      init: function() {
+        this.appendValueInput("ROBOT_NAME")
+            .setCheck("String")
+            .appendField("Servo Power OFF for");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour("#c0392b");
+        this.setTooltip("Turns the servo motors off.");
+      }
+    };
+    Blockly.Blocks['robot_clear_error'] = {
+      init: function() {
+        this.appendValueInput("ROBOT_NAME")
+            .setCheck("String")
+            .appendField("Clear errors for");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour("#c0392b");
+        this.setTooltip("Clears any active errors on the robot controller.");
+      }
+    };
+    Blockly.Blocks['robot_job_stop'] = {
+      init: function() {
+        this.appendValueInput("ROBOT_NAME")
+            .setCheck("String")
+            .appendField("Stop current job for");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour("#c0392b");
+        this.setTooltip("Stops the currently running job or movement.");
+      }
+    };
+    Blockly.Blocks['robot_go_home'] = {
+        init: function() {
+            this.appendValueInput("ROBOT_NAME")
+                .setCheck("String")
+                .appendField("Go to HOME position for");
+            this.setPreviousStatement(true, null);
+            this.setNextStatement(true, null);
+            this.setColour("#c0392b");
+            this.setTooltip("Sends the robot to its predefined home position.");
+        }
+    };
+    Blockly.Blocks['robot_movej'] = {
+      init: function() {
+        this.appendValueInput("POS")
+            .setCheck("Array")
+            .appendField("Move Joint (movej) to position");
+        this.appendValueInput("VEL")
+            .setCheck("Number")
+            .appendField("velocity (%)");
+        this.appendValueInput("ACC")
+            .setCheck("Number")
+            .appendField("acceleration");
+        this.appendValueInput("DEC")
+            .setCheck("Number")
+            .appendField("deceleration");
+        this.appendValueInput("ROBOT_NAME")
+            .setCheck("String")
+            .appendField("on robot");
+        this.setInputsInline(false);
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour("#27ae60");
+        this.setTooltip("Executes a joint move to the target position.");
+      }
+    };
+    Blockly.Blocks['robot_movel'] = {
+        init: function() {
+            this.appendValueInput("POS")
+                .setCheck("Array")
+                .appendField("Move Linear (movel) to position");
+            this.appendValueInput("VEL")
+                .setCheck("Number")
+                .appendField("velocity (mm/s)");
+            this.appendValueInput("ACC")
+                .setCheck("Number")
+                .appendField("acceleration");
+            this.appendValueInput("DEC")
+                .setCheck("Number")
+                .appendField("deceleration");
+            this.appendValueInput("ROBOT_NAME")
+                .setCheck("String")
+                .appendField("on robot");
+            this.setInputsInline(false);
+            this.setPreviousStatement(true, null);
+            this.setNextStatement(true, null);
+            this.setColour("#27ae60");
+            this.setTooltip("Executes a linear move to the target position.");
+        }
+    };
+    Blockly.Blocks['robot_set_speed'] = {
+      init: function() {
+        this.appendValueInput("SPEED")
+            .setCheck("Number")
+            .appendField("Set global speed to (%)");
+        this.appendValueInput("ROBOT_NAME")
+            .setCheck("String")
+            .appendField("for robot");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour("#27ae60");
+        this.setTooltip("Sets the global speed override (0-100).");
+      }
+    };
+    Blockly.Blocks['robot_start_jogging'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("Start jogging")
+                .appendField(new Blockly.FieldDropdown(AXIS_DROPDOWN), "AXIS")
+                .appendField("in")
+                .appendField(new Blockly.FieldDropdown(DIR_DROPDOWN), "DIRECTION")
+                .appendField("direction");
+            this.appendValueInput("ROBOT_NAME")
+                .setCheck("String")
+                .appendField("for robot");
+            this.setPreviousStatement(true, null);
+            this.setNextStatement(true, null);
+            this.setColour("#27ae60");
+            this.setTooltip("Starts manually jogging a single axis.");
+        }
+    };
+    Blockly.Blocks['robot_stop_jogging'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("Stop jogging")
+                .appendField(new Blockly.FieldDropdown(AXIS_DROPDOWN), "AXIS");
+            this.appendValueInput("ROBOT_NAME")
+                .setCheck("String")
+                .appendField("for robot");
+            this.setPreviousStatement(true, null);
+            this.setNextStatement(true, null);
+            this.setColour("#27ae60");
+            this.setTooltip("Stops the jogging motion for a single axis.");
+        }
+    };
+    const getterBlocks = {
+        'robot_get_connection_status': { tooltip: 'Returns the current connection status.', output: 'Number' },
+        'robot_get_servo_state': { tooltip: 'Returns the current servo state (ON/OFF).', output: 'Number' },
+        'robot_get_robot_running_state': { tooltip: 'Returns the robot\'s running state.', output: 'Number' },
+        'robot_get_speed': { tooltip: 'Returns the current global speed.', output: 'Number' },
+        'robot_get_current_coord': { tooltip: 'Returns the current coordinate system.', output: 'Number' },
+        'robot_get_current_mode': { tooltip: 'Returns the current robot mode.', output: 'Number' }
+    };
+    for (const [key, value] of Object.entries(getterBlocks)) {
+        Blockly.Blocks[key] = {
+            init: function() {
+                const title = key.replace(/_/g, ' ').replace('robot ', '');
+                this.appendValueInput("ROBOT_NAME")
+                    .setCheck("String")
+                    .appendField(title + " for");
+                this.setOutput(true, value.output);
+                this.setColour("#f39c12");
+                this.setTooltip(value.tooltip);
+            }
+        };
+    }
+    Blockly.Blocks['robot_get_current_position'] = {
+      init: function() {
+        this.appendDummyInput()
+            .appendField("Get current position in")
+            .appendField(new Blockly.FieldDropdown(COORD_DROPDOWN), "COORD");
+        this.appendValueInput("ROBOT_NAME")
+            .setCheck("String")
+            .appendField("for robot");
+        this.setOutput(true, "Array");
+        this.setColour("#f39c12");
+        this.setTooltip("Gets the robot's current position either in Joint or Cartesian coordinates.");
+      }
+    };
+    Blockly.Blocks['robot_set_current_coord'] = {
+      init: function() {
+        this.appendDummyInput()
+            .appendField("Set coordinate system to")
+            .appendField(new Blockly.FieldDropdown(COORD_DROPDOWN), "COORD");
+        this.appendValueInput("ROBOT_NAME")
+            .setCheck("String")
+            .appendField("for robot");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour("#8e44ad");
+        this.setTooltip("Sets the active coordinate system for movement commands.");
+      }
+    };
+    Blockly.Blocks['robot_set_current_mode'] = {
+        init: function() {
+            this.appendDummyInput()
+                .appendField("Set robot mode to")
+                .appendField(new Blockly.FieldDropdown(MODE_DROPDOWN), "MODE");
+            this.appendValueInput("ROBOT_NAME")
+                .setCheck("String")
+                .appendField("for robot");
+            this.setPreviousStatement(true, null);
+            this.setNextStatement(true, null);
+            this.setColour("#8e44ad");
+            this.setTooltip("Sets the robot's operating mode (e.g., Teach, Play).");
+        }
+    };
+  </script>
+
+  <script>
+    /***********************************/
+    /*** PYTHON CODE GENERATORS      ***/
+    /***********************************/
+    
+    const ORDER = Blockly.Python.ORDER_ATOMIC;
+
+    Blockly.Python['controls_wait'] = function(block) {
+      const seconds = Blockly.Python.valueToCode(block, 'SECONDS', ORDER) || '1';
+      return `time.sleep(${seconds})\n`;
+    };
+    
+    Blockly.Python['robot_init'] = function(block) {
+        return ''; // Initialization is handled by the server
+    };
+    Blockly.Python['robot_connect'] = function(block) {
+      const ip = Blockly.Python.valueToCode(block, 'IP', ORDER) || '"127.0.0.1"';
+      const port = Blockly.Python.valueToCode(block, 'PORT', ORDER) || '"8080"';
+      const name = Blockly.Python.valueToCode(block, 'ROBOT_NAME', ORDER) || '"Robot1"';
+      return `robot.connect_robot(${ip}, ${port}, ${name})\n`;
+    };
+    Blockly.Python['robot_disconnect'] = function(block) {
+      const name = Blockly.Python.valueToCode(block, 'ROBOT_NAME', ORDER) || '"Robot1"';
+      return `robot.disconnect_robot(${name})\n`;
+    };
+    Blockly.Python['robot_set_servo_poweron'] = function(block) {
+      const name = Blockly.Python.valueToCode(block, 'ROBOT_NAME', ORDER) || '"Robot1"';
+      return `robot.set_servo_poweron(${name})\n`;
+    };
+    Blockly.Python['robot_set_servo_poweroff'] = function(block) {
+      const name = Blockly.Python.valueToCode(block, 'ROBOT_NAME', ORDER) || '"Robot1"';
+      return `robot.set_servo_poweroff(${name})\n`;
+    };
+    Blockly.Python['robot_clear_error'] = function(block) {
+      const name = Blockly.Python.valueToCode(block, 'ROBOT_NAME', ORDER) || '"Robot1"';
+      return `robot.clear_error(${name})\n`;
+    };
+    Blockly.Python['robot_job_stop'] = function(block) {
+      const name = Blockly.Python.valueToCode(block, 'ROBOT_NAME', ORDER) || '"Robot1"';
+      return `robot.job_stop(${name})\n`;
+    };
+    Blockly.Python['robot_go_home'] = function(block) {
+        const name = Blockly.Python.valueToCode(block, 'ROBOT_NAME', ORDER) || '"Robot1"';
+        return `robot.go_home(${name})\n`;
+    };
+    Blockly.Python['robot_movej'] = function(block) {
+        const pos = Blockly.Python.valueToCode(block, 'POS', ORDER) || '[0, 0, 0, 0, 0, 0, 0]';
+        const vel = Blockly.Python.valueToCode(block, 'VEL', ORDER) || '100';
+        const acc = Blockly.Python.valueToCode(block, 'ACC', ORDER) || '100';
+        const dec = Blockly.Python.valueToCode(block, 'DEC', ORDER) || '100';
+        const name = Blockly.Python.valueToCode(block, 'ROBOT_NAME', ORDER) || '"Robot1"';
+        return `robot.movej(pos=${pos}, vel=${vel}, coord=0, acc=${acc}, dec=${dec}, robot_name=${name})\n`;
+    };
+    Blockly.Python['robot_movel'] = function(block) {
+        const pos = Blockly.Python.valueToCode(block, 'POS', ORDER) || '[0, 0, 0, 0, 0, 0, 0]';
+        const vel = Blockly.Python.valueToCode(block, 'VEL', ORDER) || '100';
+        const acc = Blockly.Python.valueToCode(block, 'ACC', ORDER) || '100';
+        const dec = Blockly.Python.valueToCode(block, 'DEC', ORDER) || '100';
+        const name = Blockly.Python.valueToCode(block, 'ROBOT_NAME', ORDER) || '"Robot1"';
+        return `robot.movel(pos=${pos}, vel=${vel}, coord=1, acc=${acc}, dec=${dec}, robot_name=${name})\n`;
+    };
+    Blockly.Python['robot_set_speed'] = function(block) {
+      const speed = Blockly.Python.valueToCode(block, 'SPEED', ORDER) || '50';
+      const name = Blockly.Python.valueToCode(block, 'ROBOT_NAME', ORDER) || '"Robot1"';
+      return `robot.set_speed(${speed}, ${name})\n`;
+    };
+    Blockly.Python['robot_start_jogging'] = function(block) {
+        const axis = block.getFieldValue('AXIS');
+        const direction = block.getFieldValue('DIRECTION');
+        const name = Blockly.Python.valueToCode(block, 'ROBOT_NAME', ORDER) || '"Robot1"';
+        return `robot.start_jogging(axis=${axis}, direction=${direction}, robot_name=${name})\n`;
+    };
+    Blockly.Python['robot_stop_jogging'] = function(block) {
+        const axis = block.getFieldValue('AXIS');
+        const name = Blockly.Python.valueToCode(block, 'ROBOT_NAME', ORDER) || '"Robot1"';
+        return `robot.stop_jogging(axis=${axis}, robot_name=${name})\n`;
+    };
+    for (const key of Object.keys(getterBlocks)) {
+        Blockly.Python[key] = function(block) {
+            const name = Blockly.Python.valueToCode(block, 'ROBOT_NAME', ORDER) || '"Robot1"';
+            const functionName = key.replace('robot_', '');
+            return [`robot.${functionName}(${name})`, ORDER];
+        };
+    }
+    Blockly.Python['robot_get_current_position'] = function(block) {
+        const coord = block.getFieldValue('COORD');
+        const name = Blockly.Python.valueToCode(block, 'ROBOT_NAME', ORDER) || '"Robot1"';
+        return [`robot.get_current_position(coord=${coord}, robot_name=${name})`, ORDER];
+    };
+    Blockly.Python['robot_set_current_coord'] = function(block) {
+      const coord = block.getFieldValue('COORD');
+      const name = Blockly.Python.valueToCode(block, 'ROBOT_NAME', ORDER) || '"Robot1"';
+      return `robot.set_current_coord(coord=${coord}, robot_name=${name})\n`;
+    };
+    Blockly.Python['robot_set_current_mode'] = function(block) {
+        const mode = block.getFieldValue('MODE');
+        const name = Blockly.Python.valueToCode(block, 'ROBOT_NAME', ORDER) || '"Robot1"';
+        return `robot.set_current_mode(mode=${mode}, robot_name=${name})\n`;
+    };
+  </script>
+
+  <script>
+    /***********************************/
+    /*** WORKSPACE AND UI FUNCTIONS  ***/
+    /***********************************/
+
+    const toolbox = document.getElementById('toolbox');
+    const workspace = Blockly.inject('blocklyDiv', {
+      toolbox: toolbox,
+      grid: { spacing: 20, length: 3, colour: '#ccc', snap: true },
+      move: { scrollbars: true, drag: true, wheel: true },
+      zoom: { controls: true, wheel: true, startScale: 1.0 },
+      trashcan: true
+    });
+
+    const codePreview = document.getElementById('content_pre');
+
+    function updateCodePreview() {
+        Blockly.Python.INFINITE_LOOP_TRAP = null;
+        let code = Blockly.Python.workspaceToCode(workspace);
+        
+        if (code.includes('time.sleep')) {
+            code = 'import time\n' + code;
+        }
+        codePreview.textContent = code;
+    }
+
+    function runCode() {
+      let code = codePreview.textContent;
+      const serverUrl = 'http://127.0.0.1:5000/execute';
+
+      console.log("Sending code to server...");
+      fetch(serverUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code }),
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Server response:', data);
+        if (data.status === 'success') {
+          alert('✅ Commands sent to robot successfully!');
+        } else {
+          alert('❌ Error executing commands:\n' + data.message);
+        }
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+        alert('🚨 Failed to connect to the Python server. Is it running?');
+      });
+    }
+
+    function saveWorkspace() {
+        const xml = Blockly.Xml.workspaceToDom(workspace);
+        const xmlText = Blockly.Xml.domToText(xml);
+        
+        const blob = new Blob([xmlText], { type: 'text/xml' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'robot_workspace.xml';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+    
+    function triggerLoad() {
+        document.getElementById('loadInput').click();
+    }
+
+    function loadWorkspace(event) {
+        const file = event.target.files[0];
+        if (!file) {
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const xml = Blockly.Xml.textToDom(e.target.result);
+            workspace.clear();
+            Blockly.Xml.domToWorkspace(xml, workspace);
+        };
+        reader.readAsText(file);
+    }
+
+    function clearWorkspace() {
+        if (confirm('Are you sure you want to clear the entire workspace?')) {
+            workspace.clear();
+        }
+    }
+    
+    function loadExample() {
+        const exampleXml = `
+        <xml xmlns="https://developers.google.com/blockly/xml">
+          <block type="robot_init" id="start_block" x="50" y="30">
+            <next>
+              <block type="robot_connect">
+                <value name="IP"><shadow type="text"><field name="TEXT">127.0.0.1</field></shadow></value>
+                <value name="PORT"><shadow type="text"><field name="TEXT">8080</field></shadow></value>
+                <value name="ROBOT_NAME"><shadow type="text"><field name="TEXT">Robot1</field></shadow></value>
+                <next>
+                  <block type="robot_set_servo_poweron">
+                    <value name="ROBOT_NAME"><shadow type="text"><field name="TEXT">Robot1</field></shadow></value>
+                    <next>
+                      <block type="controls_wait">
+                        <value name="SECONDS"><shadow type="math_number"><field name="NUM">2</field></shadow></value>
+                        <next>
+                          <block type="robot_go_home">
+                            <value name="ROBOT_NAME"><shadow type="text"><field name="TEXT">Robot1</field></shadow></value>
+                            <next>
+                              <block type="robot_set_servo_poweroff">
+                                <value name="ROBOT_NAME"><shadow type="text"><field name="TEXT">Robot1</field></shadow></value>
+                                <next>
+                                  <block type="robot_disconnect">
+                                    <value name="ROBOT_NAME"><shadow type="text"><field name="TEXT">Robot1</field></shadow></value>
+                                  </block>
+                                </next>
+                              </block>
+                            </next>
+                          </block>
+                        </next>
+                      </block>
+                    </next>
+                  </block>
+                </next>
+              </block>
+            </next>
+          </block>
+        </xml>`;
+        
+        if (confirm('This will clear the current workspace. Load example program?')) {
+            const xml = Blockly.Xml.textToDom(exampleXml);
+            workspace.clear();
+            Blockly.Xml.domToWorkspace(xml, workspace);
+        }
+    }
+
+    workspace.addChangeListener(updateCodePreview);
+    
+    updateCodePreview();
+
+  </script>
+</body>
+</html>
